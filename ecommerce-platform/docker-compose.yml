@@ -262,6 +262,28 @@ services:
     networks:
       - ecommerce-network
 
+  order-service:
+    build: ./services/order-service
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-order
+      DB_PORT: "5432"
+      DB_NAME: order_db
+      DB_USERNAME: order_service
+      DB_PASSWORD: order_service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
   gateway-service:
     build: ./services/gateway-service
     container_name: gateway-service
@@ -272,6 +294,7 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       CUSTOMER_SERVICE_URL: http://customer-service:8082
       PRODUCT_SERVICE_URL: http://product-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
     depends_on:
       config-server:
         condition: service_healthy
@@ -280,6 +303,8 @@ services:
       customer-service:
         condition: service_started
       product-service:
+        condition: service_started
+      order-service:
         condition: service_started
     networks:
       - ecommerce-network

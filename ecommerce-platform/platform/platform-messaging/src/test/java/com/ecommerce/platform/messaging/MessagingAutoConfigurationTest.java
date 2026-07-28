@@ -31,6 +31,11 @@ class MessagingAutoConfigurationTest {
         });
     }
 
+    @Test
+    void registersEventTypeRouter() {
+        contextRunner.run(context -> assertThat(context).hasSingleBean(EventTypeRouter.class));
+    }
+
     static class SnsTemplateConfig {
         @Bean
         SnsTemplate snsTemplate() {
