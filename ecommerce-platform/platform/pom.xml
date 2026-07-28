@@ -30,6 +30,7 @@
         <module>platform-exception</module>
         <module>platform-events</module>
         <module>platform-security</module>
+        <module>platform-messaging</module>
     </modules>
 
 </project>

@@ -118,8 +118,7 @@
 
             <!--
                 Modulos internos do platform. Adicionados incrementalmente conforme sao criados:
-                platform-messaging, platform-observability e platform-testing entram nos
-                proximos marcos.
+                platform-observability e platform-testing entram nos proximos marcos.
             -->
             <dependency>
                 <groupId>com.ecommerce</groupId>
@@ -139,6 +138,11 @@
             <dependency>
                 <groupId>com.ecommerce</groupId>
                 <artifactId>platform-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ecommerce</groupId>
+                <artifactId>platform-messaging</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

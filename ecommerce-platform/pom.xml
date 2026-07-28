@@ -60,6 +60,15 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <!--
+                            Testes *IT.java (ex.: Testcontainers/LocalStack) rodam via Failsafe na
+                            fase verify, nao aqui - mantem "mvn test" rapido e sem dependencia de Docker.
+                        -->
+                        <excludes>
+                            <exclude>**/*IT.java</exclude>
+                        </excludes>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -111,6 +120,23 @@
                                 </rule>
                             </rules>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                Failsafe roda os testes *IT.java (integration-test/verify), com Docker
+                (Testcontainers/LocalStack) quando aplicavel. "mvn install" ainda os executa
+                (install roda depois de verify no ciclo de vida padrao).
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
