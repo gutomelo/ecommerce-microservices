@@ -28,6 +28,7 @@
         <module>platform-bom</module>
         <module>platform-common</module>
         <module>platform-exception</module>
+        <module>platform-events</module>
     </modules>
 
 </project>
