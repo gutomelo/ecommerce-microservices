@@ -1,0 +1,10 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+
+platform:
+  security:
+    jwt:
+      secret: test-secret-key-with-at-least-32-characters!!
+      issuer: customer-service-test
