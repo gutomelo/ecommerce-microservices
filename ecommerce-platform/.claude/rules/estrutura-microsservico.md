@@ -20,7 +20,7 @@ Todo serviço em `services/<nome>-service/` segue exatamente esta organização 
 │   │   └── resources/
 │   │       ├── db/              # migrations Flyway
 │   │       ├── application.yml
-│   │       └── logback.xml
+│   │       └── logback-spring.xml
 │   └── test/                    # testes unitários, integração, Testcontainers
 ├── Dockerfile
 └── pom.xml

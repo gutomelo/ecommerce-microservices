@@ -31,6 +31,8 @@
         <module>platform-events</module>
         <module>platform-security</module>
         <module>platform-messaging</module>
+        <module>platform-observability</module>
+        <module>platform-testing</module>
     </modules>
 
 </project>

@@ -30,6 +30,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <springdoc-openapi.version>2.8.17</springdoc-openapi.version>
         <jjwt.version>0.12.7</jjwt.version>
+        <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
     </properties>
 
     <dependencyManagement>
@@ -115,11 +116,13 @@
                 <version>${jjwt.version}</version>
                 <scope>runtime</scope>
             </dependency>
+            <dependency>
+                <groupId>net.logstash.logback</groupId>
+                <artifactId>logstash-logback-encoder</artifactId>
+                <version>${logstash-logback-encoder.version}</version>
+            </dependency>
 
-            <!--
-                Modulos internos do platform. Adicionados incrementalmente conforme sao criados:
-                platform-observability e platform-testing entram nos proximos marcos.
-            -->
+            <!-- Modulos internos do platform. Adicionados incrementalmente conforme sao criados. -->
             <dependency>
                 <groupId>com.ecommerce</groupId>
                 <artifactId>platform-common</artifactId>
@@ -143,6 +146,16 @@
             <dependency>
                 <groupId>com.ecommerce</groupId>
                 <artifactId>platform-messaging</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ecommerce</groupId>
+                <artifactId>platform-observability</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ecommerce</groupId>
+                <artifactId>platform-testing</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

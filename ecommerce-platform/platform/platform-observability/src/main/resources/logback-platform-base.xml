@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Fragmento de logging estruturado (JSON) compartilhado por toda a plataforma
+    (ver .claude/rules/observabilidade.md). Cada servico inclui este arquivo a
+    partir do seu proprio logback-spring.xml:
+
+        <configuration>
+            <include resource="logback-platform-base.xml"/>
+        </configuration>
+
+    Nao redefina o encoder/appender por servico - so isso garante que todos os
+    servicos compartilhem exatamente o mesmo formato de log.
+-->
+<included>
+
+    <springProperty scope="context" name="applicationName" source="spring.application.name" defaultValue="unknown-service"/>
+
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <customFields>{"application":"${applicationName}"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_CONSOLE"/>
+    </root>
+
+</included>

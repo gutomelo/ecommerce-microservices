@@ -95,8 +95,13 @@
                         </goals>
                     </execution>
                     <execution>
+                        <!--
+                            Fase verify (nao test): roda depois do Failsafe, para que o
+                            relatorio reflita tambem os testes *IT.java (Testcontainers/LocalStack),
+                            nao so os testes unitarios.
+                        -->
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
