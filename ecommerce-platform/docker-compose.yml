@@ -1,0 +1,15 @@
+name: ecommerce-platform
+
+# Preenchido incrementalmente pelos marcos do plano de implementacao
+# (ver /home/guto/.claude/plans/goofy-zooming-sketch.md):
+#   Marco 6  -> LocalStack, Postgres por servico, Prometheus, Grafana, Jaeger, Mailpit
+#   Marco 7+ -> config-server, gateway-service e demais microsservicos
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  localstack-data:
+
+services: {}
