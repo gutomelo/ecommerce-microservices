@@ -29,6 +29,7 @@
         <module>platform-common</module>
         <module>platform-exception</module>
         <module>platform-events</module>
+        <module>platform-security</module>
     </modules>
 
 </project>
