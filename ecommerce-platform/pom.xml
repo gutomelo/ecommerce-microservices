@@ -24,6 +24,8 @@
         <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <lombok.version>1.18.46</lombok.version>
+        <!-- Deve ficar igual a spring-boot.version em platform/platform-bom/pom.xml -->
+        <spring-boot-maven-plugin.version>3.5.16</spring-boot-maven-plugin.version>
 
         <!-- Cobertura minima exigida por .claude/rules/testes.md -->
         <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>
@@ -36,6 +38,7 @@
     -->
     <modules>
         <module>platform</module>
+        <module>services</module>
     </modules>
 
     <build>
@@ -75,6 +78,31 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven-failsafe-plugin.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <!--
+                                classifier=exec evita que o repackage SOBRESCREVA o jar simples
+                                (target/<servico>.jar) pelo fat jar - descoberto na pratica: quando
+                                o repackage substitui o jar padrao, o Failsafe (fase verify/
+                                integration-test) falha ao resolver metadados de anotacao do Spring
+                                TestContext (@BootstrapWith) para testes *IT.java, mesmo sem nenhuma
+                                relacao aparente. Com o classifier, o executavel fica em
+                                target/<servico>-exec.jar (usado no Dockerfile) e o jar simples
+                                permanece intacto para os testes.
+                            -->
+                            <configuration>
+                                <classifier>exec</classifier>
+                            </configuration>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -87,6 +115,18 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco-maven-plugin.version}</version>
+                <configuration>
+                    <!--
+                        A classe *Application (main de cada microsservico) so contem a
+                        chamada SpringApplication.run(...) - @SpringBootTest nao invoca o
+                        metodo main() literalmente, entao essa linha nunca aparece coberta
+                        mesmo com o contexto totalmente testado. Excluir daqui evita que
+                        todo servico precise repetir essa exclusao no proprio pom.xml.
+                    -->
+                    <excludes>
+                        <exclude>**/*Application.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>

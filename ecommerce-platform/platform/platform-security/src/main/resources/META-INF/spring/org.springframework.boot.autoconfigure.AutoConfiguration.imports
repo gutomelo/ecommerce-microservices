@@ -1,1 +1,2 @@
 com.ecommerce.platform.security.JwtAutoConfiguration
+com.ecommerce.platform.security.JwtServletAutoConfiguration

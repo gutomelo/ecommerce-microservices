@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JwtAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(JwtAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(JwtAutoConfiguration.class, JwtServletAutoConfiguration.class));
 
     @Test
     void registersBeansWhenSecretIsConfigured() {
@@ -19,6 +19,17 @@ class JwtAutoConfigurationTest {
                     assertThat(context).hasSingleBean(JwtTokenProvider.class);
                     assertThat(context).hasSingleBean(JwtAuthenticationFilter.class);
                     assertThat(context).hasSingleBean(JwtProperties.class);
+                });
+    }
+
+    @Test
+    void jwtTokenProviderAloneIsSufficientWithoutServletAutoConfiguration() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(JwtAutoConfiguration.class))
+                .withPropertyValues("platform.security.jwt.secret=test-secret-key-with-at-least-32-characters!!")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(JwtTokenProvider.class);
+                    assertThat(context).doesNotHaveBean(JwtAuthenticationFilter.class);
                 });
     }
 

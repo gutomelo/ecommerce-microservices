@@ -1,0 +1,15 @@
+# Config compartilhada (config-server) nao esta disponivel em teste - desabilitada
+# para nao atrasar/erros de tentativa de conexao. datasource.* e sobrescrito em
+# runtime pelo PostgresTestContainerSupport (platform-testing) via @DynamicPropertySource.
+spring:
+  cloud:
+    config:
+      enabled: false
+
+# Mesmo valor de TestJwtTokenFactory.TEST_SECRET (platform-testing), para que
+# tokens gerados nos testes sejam validos contra este servico.
+platform:
+  security:
+    jwt:
+      secret: test-secret-key-with-at-least-32-characters!!
+      issuer: auth-service-test

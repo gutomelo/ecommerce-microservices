@@ -183,6 +183,62 @@ services:
       - ecommerce-network
 
   # ---------------------------------------------------------------------------
+  # Microsservicos (ver CLAUDE.md - adicionados incrementalmente por marco)
+  # ---------------------------------------------------------------------------
+  config-server:
+    build: ./services/config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      CONFIG_REPO_PATH: /config-repo
+    volumes:
+      - ./infrastructure/config-repo:/config-repo:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - ecommerce-network
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-auth
+      DB_PORT: "5432"
+      DB_NAME: auth_db
+      DB_USERNAME: auth
+      DB_PASSWORD: auth
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  gateway-service:
+    build: ./services/gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      AUTH_SERVICE_URL: http://auth-service:8081
+    depends_on:
+      config-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
+
+  # ---------------------------------------------------------------------------
   # Observabilidade (ver .claude/rules/observabilidade.md)
   # ---------------------------------------------------------------------------
   prometheus:
