@@ -75,9 +75,9 @@ Build: Maven Multi Module na raiz compila `platform/` + todos os `services/`. Ca
 | `auth-service` | Login, cadastro, JWT, refresh token | — | — |
 | `customer-service` | CRUD de clientes | — | — |
 | `product-service` | CRUD de produtos (id, nome, descrição, categoria, preço, estoque) | — | — |
-| `order-service` | Cria pedidos, controla status (`PENDING`/`CONFIRMED`/`CANCELLED`), inicia a Saga. **Nunca** chama outro serviço diretamente | `PagamentoAprovado`, `PagamentoRecusado` | `PedidoCriado`, `PedidoConfirmado`, `PedidoCancelado` |
-| `inventory-service` | Reserva/libera estoque | `PedidoCriado`, `PedidoCancelado` | `EstoqueReservado`, `EstoqueIndisponivel` |
-| `payment-service` | Processa pagamento (nunca acessa banco de outro serviço) | `EstoqueReservado` | `PagamentoAprovado`, `PagamentoRecusado` |
+| `order-service` | Cria pedidos, controla status (`PENDING`/`CONFIRMED`/`CANCELLED`), inicia a Saga. **Nunca** chama outro serviço diretamente | `PaymentApproved`, `PaymentDeclined` | `OrderCreated`, `OrderConfirmed`, `OrderCancelled` |
+| `inventory-service` | Reserva/libera estoque | `OrderCreated`, `OrderCancelled` | `StockReserved`, `StockUnavailable` |
+| `payment-service` | Processa pagamento (nunca acessa banco de outro serviço) | `StockReserved` | `PaymentApproved`, `PaymentDeclined` |
 | `notification-service` | Envia e-mail/SMS | todos os eventos | — |
 
 Fluxo completo (sucesso e compensação) em [`docs/saga/fluxo-saga.md`](docs/saga/fluxo-saga.md). Catálogo de eventos em [`docs/events/catalogo-eventos.md`](docs/events/catalogo-eventos.md).

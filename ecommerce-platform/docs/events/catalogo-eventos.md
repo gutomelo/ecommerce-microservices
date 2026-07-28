@@ -2,15 +2,17 @@
 
 Todos os eventos abaixo são definidos **exclusivamente** em `platform-events`, estendem `BaseEvent` e carregam: `eventId`, `aggregateId`, `aggregateType`, `eventType`, `occurredAt`, `correlationId`, `traceId`, `version`, `payload`.
 
-| Evento | Tópico SNS | Publicado por | Consumido por | Propósito |
-|---|---|---|---|---|
-| `PedidoCriadoEvent` | `PedidoCriado` | `order-service` | `inventory-service` | Novo pedido criado, dispara a Saga |
-| `EstoqueReservadoEvent` | `EstoqueReservado` | `inventory-service` | `payment-service` | Estoque reservado com sucesso para o pedido |
-| `EstoqueIndisponivelEvent` | `EstoqueIndisponivel` | `inventory-service` | `order-service` | Não há estoque suficiente; dispara compensação |
-| `PagamentoAprovadoEvent` | `PagamentoAprovado` | `payment-service` | `order-service` | Pagamento aprovado; pedido pode ser confirmado |
-| `PagamentoRecusadoEvent` | `PagamentoRecusado` | `payment-service` | `order-service` | Pagamento recusado; dispara compensação |
-| `PedidoConfirmadoEvent` | `PedidoConfirmado` | `order-service` | `notification-service` | Pedido confirmado; notificar cliente |
-| `PedidoCanceladoEvent` | `PedidoCancelado` | `order-service` | `inventory-service`, `notification-service` | Pedido cancelado; liberar estoque e notificar |
+| Evento (código) | Tópico SNS | Termo de negócio (pt-BR) | Publicado por | Consumido por | Propósito |
+|---|---|---|---|---|---|
+| `OrderCreatedEvent` | `OrderCreated` | Pedido Criado | `order-service` | `inventory-service` | Novo pedido criado, dispara a Saga |
+| `StockReservedEvent` | `StockReserved` | Estoque Reservado | `inventory-service` | `payment-service` | Estoque reservado com sucesso para o pedido |
+| `StockUnavailableEvent` | `StockUnavailable` | Estoque Indisponível | `inventory-service` | `order-service` | Não há estoque suficiente; dispara compensação |
+| `PaymentApprovedEvent` | `PaymentApproved` | Pagamento Aprovado | `payment-service` | `order-service` | Pagamento aprovado; pedido pode ser confirmado |
+| `PaymentDeclinedEvent` | `PaymentDeclined` | Pagamento Recusado | `payment-service` | `order-service` | Pagamento recusado; dispara compensação |
+| `OrderConfirmedEvent` | `OrderConfirmed` | Pedido Confirmado | `order-service` | `notification-service` | Pedido confirmado; notificar cliente |
+| `OrderCancelledEvent` | `OrderCancelled` | Pedido Cancelado | `order-service` | `inventory-service`, `notification-service` | Pedido cancelado; liberar estoque e notificar |
+
+Os nomes de código (classe e tópico) são a fonte da verdade e seguem inglês americano, conforme [`.claude/rules/idioma-e-estilo.md`](../../.claude/rules/idioma-e-estilo.md). A coluna "Termo de negócio (pt-BR)" existe apenas para documentação e rastreabilidade com a linguagem ubíqua do domínio — nunca use esses termos em identificadores de código.
 
 `notification-service` está inscrito em todos os tópicos acima (fila própria por consumidor).
 
