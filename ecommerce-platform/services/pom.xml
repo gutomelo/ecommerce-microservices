@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ecommerce</groupId>
+        <artifactId>ecommerce-platform</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>services</artifactId>
+    <packaging>pom</packaging>
+
+    <name>services</name>
+    <description>Agregador dos microsservicos de negocio da plataforma (ver .claude/rules/estrutura-microsservico.md).</description>
+
+    <!--
+        Modulos adicionados incrementalmente conforme o plano de implementacao:
+        Marco 7: config-server, gateway-service, auth-service
+        Marco 8: customer-service, product-service
+        Marco 9: order-service
+        Marco 10: inventory-service, payment-service
+        Marco 11: notification-service
+    -->
+    <modules>
+        <module>config-server</module>
+        <module>auth-service</module>
+        <module>gateway-service</module>
+        <module>customer-service</module>
+        <module>product-service</module>
+        <module>order-service</module>
+        <module>inventory-service</module>
+        <module>payment-service</module>
+        <module>notification-service</module>
+    </modules>
+
+</project>

@@ -1,0 +1,18 @@
+# Mesmo datasources de infrastructure/grafana/provisioning/datasources/datasources.yml,
+# so que as URLs usam o DNS do Cloud Map em vez do hostname docker-compose local.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus.ecommerce.local:9090
+    isDefault: true
+    editable: false
+
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger.ecommerce.local:16686
+    editable: false

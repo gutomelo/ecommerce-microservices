@@ -1,0 +1,52 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/**
+            - id: customer-service
+              uri: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/customers/**
+            - id: product-service
+              uri: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/products/**
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/orders/**
+            - id: inventory-service
+              uri: ${INVENTORY_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/stock/**
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/payments/**
+
+gateway:
+  security:
+    public-paths:
+      - /auth/**
+      - /actuator/**
+  rate-limit:
+    limit-for-period: 20
+    limit-refresh-period-millis: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway

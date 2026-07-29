@@ -1,0 +1,54 @@
+# Mesmo scrape config de infrastructure/prometheus/prometheus.yml, so que os
+# targets usam o DNS do Cloud Map (<servico>.ecommerce.local) em vez do
+# hostname da rede docker-compose local. Empacotado nesta imagem via
+# infrastructure/terraform/docker/Dockerfile.prometheus (ver README do terraform).
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: gateway-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["gateway-service.ecommerce.local:8080"]
+
+  - job_name: config-server
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["config-server.ecommerce.local:8888"]
+
+  - job_name: auth-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["auth-service.ecommerce.local:8081"]
+
+  - job_name: customer-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["customer-service.ecommerce.local:8082"]
+
+  - job_name: product-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["product-service.ecommerce.local:8083"]
+
+  - job_name: order-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["order-service.ecommerce.local:8084"]
+
+  - job_name: inventory-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["inventory-service.ecommerce.local:8085"]
+
+  - job_name: payment-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["payment-service.ecommerce.local:8086"]
+
+  - job_name: notification-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["notification-service.ecommerce.local:8087"]

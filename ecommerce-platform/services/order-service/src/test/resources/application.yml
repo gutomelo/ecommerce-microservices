@@ -1,0 +1,12 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+
+platform:
+  security:
+    jwt:
+      secret: test-secret-key-with-at-least-32-characters!!
+      issuer: order-service-test
+  outbox:
+    publish-interval-millis: 500

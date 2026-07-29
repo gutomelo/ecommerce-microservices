@@ -1,0 +1,441 @@
+name: ecommerce-platform
+
+# Preenchido incrementalmente pelos marcos do plano de implementacao
+# (ver /home/guto/.claude/plans/goofy-zooming-sketch.md):
+#   Marco 6  -> LocalStack, Postgres por servico, Prometheus, Grafana, Jaeger, Mailpit (este arquivo)
+#   Marco 7+ -> config-server, gateway-service e demais microsservicos (adicionados um a um)
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  localstack-data:
+  postgres-auth-data:
+  postgres-customer-data:
+  postgres-product-data:
+  postgres-order-data:
+  postgres-inventory-data:
+  postgres-payment-data:
+  postgres-notification-data:
+  grafana-data:
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # AWS local (SNS/SQS) - ver infrastructure/localstack/init/init-aws.sh para os
+  # topicos/filas criados automaticamente (docs/events/catalogo-eventos.md).
+  # ---------------------------------------------------------------------------
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sns,sqs
+      - DEBUG=0
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - ./infrastructure/localstack/init:/etc/localstack/init/ready.d
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ecommerce-network
+
+  # ---------------------------------------------------------------------------
+  # Um banco PostgreSQL exclusivo por microsservico (ver .claude/rules/banco-de-dados.md)
+  # ---------------------------------------------------------------------------
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-customer:
+    image: postgres:16-alpine
+    container_name: postgres-customer
+    environment:
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: customer
+      POSTGRES_PASSWORD: customer
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-customer-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customer -d customer_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-product:
+    image: postgres:16-alpine
+    container_name: postgres-product
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: product
+      POSTGRES_PASSWORD: product
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-product-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product -d product_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-order:
+    image: postgres:16-alpine
+    container_name: postgres-order
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: order_service
+      POSTGRES_PASSWORD: order_service
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-order-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_service -d order_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    container_name: postgres-inventory
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-inventory-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: postgres-payment
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment -d payment_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  postgres-notification:
+    image: postgres:16-alpine
+    container_name: postgres-notification
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: notification
+      POSTGRES_PASSWORD: notification
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-notification-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notification -d notification_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  # ---------------------------------------------------------------------------
+  # Microsservicos (ver CLAUDE.md - adicionados incrementalmente por marco)
+  # ---------------------------------------------------------------------------
+  config-server:
+    build: ./services/config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      CONFIG_REPO_PATH: /config-repo
+    volumes:
+      - ./infrastructure/config-repo:/config-repo:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - ecommerce-network
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-auth
+      DB_PORT: "5432"
+      DB_NAME: auth_db
+      DB_USERNAME: auth
+      DB_PASSWORD: auth
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  customer-service:
+    build: ./services/customer-service
+    container_name: customer-service
+    ports:
+      - "8082:8082"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-customer
+      DB_PORT: "5432"
+      DB_NAME: customer_db
+      DB_USERNAME: customer
+      DB_PASSWORD: customer
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-customer:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  product-service:
+    build: ./services/product-service
+    container_name: product-service
+    ports:
+      - "8083:8083"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-product
+      DB_PORT: "5432"
+      DB_NAME: product_db
+      DB_USERNAME: product
+      DB_PASSWORD: product
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-product:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  order-service:
+    build: ./services/order-service
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-order
+      DB_PORT: "5432"
+      DB_NAME: order_db
+      DB_USERNAME: order_service
+      DB_PASSWORD: order_service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  inventory-service:
+    build: ./services/inventory-service
+    container_name: inventory-service
+    ports:
+      - "8085:8085"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-inventory
+      DB_PORT: "5432"
+      DB_NAME: inventory_db
+      DB_USERNAME: inventory
+      DB_PASSWORD: inventory
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-inventory:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    build: ./services/payment-service
+    container_name: payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-payment
+      DB_PORT: "5432"
+      DB_NAME: payment_db
+      DB_USERNAME: payment
+      DB_PASSWORD: payment
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-payment:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-notification
+      DB_PORT: "5432"
+      DB_NAME: notification_db
+      DB_USERNAME: notification
+      DB_PASSWORD: notification
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-notification:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks:
+      - ecommerce-network
+
+  gateway-service:
+    build: ./services/gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CUSTOMER_SERVICE_URL: http://customer-service:8082
+      PRODUCT_SERVICE_URL: http://product-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
+      INVENTORY_SERVICE_URL: http://inventory-service:8085
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+    depends_on:
+      config-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
+
+  # ---------------------------------------------------------------------------
+  # Observabilidade (ver .claude/rules/observabilidade.md)
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - ecommerce-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+    networks:
+      - ecommerce-network
+
+  jaeger:
+    image: jaegertracing/jaeger:2.12.0
+    container_name: jaeger
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - ecommerce-network
+
+  # ---------------------------------------------------------------------------
+  # SMTP fake para o notification-service
+  # (ver docs/decisions/0002-mailpit-para-email-local-e-log-para-sms.md)
+  # ---------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ecommerce-mailpit
+    ports:
+      - "1026:1025" # SMTP (1025 ja em uso por outro container neste host)
+      - "8026:8025" # UI web (8025 ja em uso por outro container neste host)
+    networks:
+      - ecommerce-network

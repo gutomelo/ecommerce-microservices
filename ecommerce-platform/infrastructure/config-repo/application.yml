@@ -1,0 +1,40 @@
+# Configuracao compartilhada por TODOS os microsservicos, servida pelo config-server
+# (ver .claude/rules/observabilidade.md e .claude/rules/seguranca.md). Cada servico
+# pode sobrescrever valores especificos no seu proprio <service-name>.yml, mas nunca
+# deve redeclarar estas chaves do zero.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  otlp:
+    tracing:
+      endpoint: http://jaeger:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
+
+spring:
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: test
+        secret-key: test
+      endpoint: http://localstack:4566
+
+# Segredo unico compartilhado entre auth-service (emite) e os demais servicos
+# (validam) - por isso vive na config centralizada, nao no application.yml de
+# cada servico. Em producao real, viria de um secrets manager, nao aqui.
+platform:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:local-dev-secret-key-change-me-32-chars-min}
+      issuer: ecommerce-platform
+      access-token-expiration-minutes: 15
+      refresh-token-expiration-days: 7

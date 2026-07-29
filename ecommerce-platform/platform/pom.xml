@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ecommerce</groupId>
+        <artifactId>ecommerce-platform</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>platform</artifactId>
+    <packaging>pom</packaging>
+
+    <name>platform</name>
+    <description>Bibliotecas de infraestrutura compartilhadas entre os microsservicos. Nao contem regra de negocio (ver .claude/rules/modulo-platform.md).</description>
+
+    <!--
+        Modulos adicionados incrementalmente conforme o plano de implementacao:
+        Marco 1: platform-bom, platform-common, platform-exception
+        Marco 2: platform-events
+        Marco 3: platform-security
+        Marco 4: platform-messaging
+        Marco 5: platform-observability, platform-testing
+    -->
+    <modules>
+        <module>platform-bom</module>
+        <module>platform-common</module>
+        <module>platform-exception</module>
+        <module>platform-events</module>
+        <module>platform-security</module>
+        <module>platform-messaging</module>
+        <module>platform-observability</module>
+        <module>platform-testing</module>
+    </modules>
+
+</project>

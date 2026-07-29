@@ -1,0 +1,84 @@
+name: CI
+
+# O projeto Maven vive em ecommerce-platform/ (ver ecommerce-platform/CLAUDE.md),
+# nao na raiz do repositorio - por isso todos os passos abaixo rodam com
+# working-directory: ecommerce-platform.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build-and-test:
+    name: Build, testes e cobertura (JaCoCo >= 80%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: ecommerce-platform
+
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Roda a build inteira do monorepo (platform/ + services/): compila,
+      # executa testes unitarios (Surefire) e de integracao via Testcontainers/
+      # LocalStack (Failsafe), e aplica o gate de cobertura JaCoCo >= 80% na fase
+      # verify (ver .claude/rules/testes.md e pom.xml raiz). Os runners do
+      # GitHub Actions ja tem Docker disponivel nativamente, exigido pelo
+      # Testcontainers.
+      - name: mvn clean verify (unit + integration tests + gate de cobertura)
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Publicar relatorios de teste e cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-and-coverage-reports
+          path: |
+            ecommerce-platform/**/target/surefire-reports/**
+            ecommerce-platform/**/target/failsafe-reports/**
+            ecommerce-platform/**/target/site/jacoco/**
+          retention-days: 7
+          if-no-files-found: warn
+
+  docker-build:
+    name: Build das imagens Docker de cada microsservico (sem push)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ecommerce-platform
+
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Empacota os jars sem repetir os testes (ja rodaram e passaram no job
+      # build-and-test) - so para popular target/*-exec.jar, que cada
+      # Dockerfile copia via COPY (ver services/*/Dockerfile).
+      - name: Empacotar jars (sem testes)
+        run: ./mvnw --batch-mode --no-transfer-progress -DskipTests package
+
+      # Builda a imagem de cada microsservico definido em docker-compose.yml
+      # (servicos sem "build:", como postgres/localstack, sao ignorados
+      # automaticamente). Nao publica em nenhum registry.
+      - name: docker compose build (todos os microsservicos)
+        run: docker compose build

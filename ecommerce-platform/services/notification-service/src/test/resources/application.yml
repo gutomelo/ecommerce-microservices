@@ -1,0 +1,17 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+  mail:
+    host: localhost
+    port: 1025
+
+# notification-service nao usa JWT em producao (sem platform-security no pom.xml),
+# mas platform-testing depende de platform-security em escopo compile, o que
+# torna JwtAutoConfiguration visivel apenas no classpath de teste - precisa de um
+# valor para nao falhar ao criar o bean, mesmo sem uso real neste servico.
+platform:
+  security:
+    jwt:
+      secret: test-secret-key-with-at-least-32-characters!!
+      issuer: notification-service-test

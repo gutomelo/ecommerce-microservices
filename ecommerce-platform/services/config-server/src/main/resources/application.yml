@@ -1,0 +1,25 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          # Em Docker, infrastructure/config-repo e montado em /config-repo (ver docker-compose.yml).
+          # Rodando localmente (mvn spring-boot:run a partir de services/config-server), o caminho
+          # relativo aponta para infrastructure/config-repo no monorepo.
+          search-locations: file:${CONFIG_REPO_PATH:../../infrastructure/config-repo}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
