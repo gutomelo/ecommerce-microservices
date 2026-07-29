@@ -328,6 +328,32 @@ services:
     networks:
       - ecommerce-network
 
+  notification-service:
+    build: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-notification
+      DB_PORT: "5432"
+      DB_NAME: notification_db
+      DB_USERNAME: notification
+      DB_PASSWORD: notification
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-notification:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks:
+      - ecommerce-network
+
   gateway-service:
     build: ./services/gateway-service
     container_name: gateway-service
