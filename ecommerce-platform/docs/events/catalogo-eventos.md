@@ -18,14 +18,14 @@ Os nomes de código (classe e tópico) são a fonte da verdade e seguem inglês 
 
 ## Filas SQS
 
-| Fila | Serviço dono | DLQ | Retry |
-|---|---|---|---|
-| Order Queue | `order-service` | Sim | Backoff exponencial |
-| Inventory Queue | `inventory-service` | Sim | Backoff exponencial |
-| Payment Queue | `payment-service` | Sim | Backoff exponencial |
-| Notification Queue | `notification-service` | Sim | Backoff exponencial |
+| Fila | Serviço dono | DLQ | maxReceiveCount | visibility timeout |
+|---|---|---|---|---|
+| Order Queue | `order-service` | Sim | 5 | 30s |
+| Inventory Queue | `inventory-service` | Sim | 5 | 30s |
+| Payment Queue | `payment-service` | Sim | 5 | 30s |
+| Notification Queue | `notification-service` | Sim | 8 | 45s |
 
-Cada fila tem `visibility timeout` e `maxReceiveCount` configurados; mensagens que excedem o número máximo de tentativas vão automaticamente para a respectiva DLQ (ver [`.claude/rules/resiliencia.md`](../../.claude/rules/resiliencia.md)).
+`notification-queue` tem `maxReceiveCount`/`visibility timeout` maiores que as demais porque seu processamento faz uma chamada de rede externa (SMTP para o Mailpit) dentro do handler - mais suscetível a falha transitória do que as outras filas, cujo processamento é só escrita em banco ou decisão em memória. Mensagens que excedem o número máximo de tentativas vão automaticamente para a respectiva DLQ (ver [`.claude/rules/resiliencia.md`](../../.claude/rules/resiliencia.md) e `platform/platform-messaging/.../DlqRedeliveryIT.java`, que prova esse comportamento contra um LocalStack real).
 
 ## Adicionando um novo evento
 

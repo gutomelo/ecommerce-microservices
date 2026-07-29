@@ -8,8 +8,16 @@ export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1
 
+# Valores default (order-queue/inventory-queue/payment-queue): processamento
+# rapido e em memoria ou apenas escrita em banco (ver .claude/rules/resiliencia.md).
 MAX_RECEIVE_COUNT=5
 VISIBILITY_TIMEOUT=30
+
+# notification-queue: unica fila cujo processamento faz uma chamada de rede
+# externa (SMTP para o Mailpit) dentro do handler - mais suscetivel a falha
+# transitoria, por isso mais tentativas e mais tempo antes de redelivery.
+NOTIFICATION_MAX_RECEIVE_COUNT=8
+NOTIFICATION_VISIBILITY_TIMEOUT=45
 
 declare -a TOPICS=(
   "OrderCreated"
@@ -35,6 +43,8 @@ done
 
 create_queue_with_dlq() {
   local name=$1
+  local max_receive_count=$2
+  local visibility_timeout=$3
   local dlq_name="${name}-dlq"
 
   local dlq_url dlq_arn
@@ -48,21 +58,22 @@ create_queue_with_dlq() {
   local attrs_file="/tmp/${name}-attrs.json"
   cat > "$attrs_file" <<EOF
 {
-  "VisibilityTimeout": "${VISIBILITY_TIMEOUT}",
-  "RedrivePolicy": "{\"deadLetterTargetArn\":\"${dlq_arn}\",\"maxReceiveCount\":\"${MAX_RECEIVE_COUNT}\"}"
+  "VisibilityTimeout": "${visibility_timeout}",
+  "RedrivePolicy": "{\"deadLetterTargetArn\":\"${dlq_arn}\",\"maxReceiveCount\":\"${max_receive_count}\"}"
 }
 EOF
   awslocal sqs set-queue-attributes --queue-url "$queue_url" --attributes "file://${attrs_file}"
 
   QUEUE_URL["$name"]="$queue_url"
   QUEUE_ARN["$name"]="$queue_arn"
-  echo "    $name -> $queue_url (DLQ: $dlq_name, maxReceiveCount=${MAX_RECEIVE_COUNT})"
+  echo "    $name -> $queue_url (DLQ: $dlq_name, maxReceiveCount=${max_receive_count}, visibilityTimeout=${visibility_timeout}s)"
 }
 
 echo "==> Criando filas SQS (com DLQ)..."
-for queue in "order-queue" "inventory-queue" "payment-queue" "notification-queue"; do
-  create_queue_with_dlq "$queue"
+for queue in "order-queue" "inventory-queue" "payment-queue"; do
+  create_queue_with_dlq "$queue" "$MAX_RECEIVE_COUNT" "$VISIBILITY_TIMEOUT"
 done
+create_queue_with_dlq "notification-queue" "$NOTIFICATION_MAX_RECEIVE_COUNT" "$NOTIFICATION_VISIBILITY_TIMEOUT"
 
 subscribe() {
   local topic_name=$1

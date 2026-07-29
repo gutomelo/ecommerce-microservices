@@ -96,4 +96,28 @@ class SnsEventPublisherTest {
 
         verify(snsTemplate, times(1)).send(eq("OrderCreated"), any(Message.class));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void circuitBreakerOpensAfterRepeatedFailuresAndFailsFastWithoutCallingSns() {
+        properties.getPublishRetry().setMaxAttempts(1);
+        properties.getPublishCircuitBreaker().setSlidingWindowSize(4);
+        properties.getPublishCircuitBreaker().setMinimumNumberOfCalls(4);
+        properties.getPublishCircuitBreaker().setFailureRateThreshold(50f);
+        properties.getPublishCircuitBreaker().setWaitDurationInOpenStateMillis(60_000);
+        SnsEventPublisher publisher = new SnsEventPublisher(snsTemplate, serializer, properties);
+        doThrow(new RuntimeException("SNS indisponivel")).when(snsTemplate).send(anyString(), any(Message.class));
+
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> publisher.publish("OrderCreated", sampleEvent()))
+                    .isInstanceOf(IntegrationException.class);
+        }
+        verify(snsTemplate, times(4)).send(eq("OrderCreated"), any(Message.class));
+
+        // Janela esgotada com 100% de falha (>= 50% configurado) -> circuito
+        // aberto. A proxima chamada deve falhar SEM sequer tentar o SNS de novo.
+        assertThatThrownBy(() -> publisher.publish("OrderCreated", sampleEvent()))
+                .isInstanceOf(IntegrationException.class);
+        verify(snsTemplate, times(4)).send(eq("OrderCreated"), any(Message.class));
+    }
 }

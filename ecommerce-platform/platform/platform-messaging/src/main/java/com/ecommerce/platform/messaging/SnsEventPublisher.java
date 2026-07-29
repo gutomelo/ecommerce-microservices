@@ -3,6 +3,8 @@ package com.ecommerce.platform.messaging;
 import com.ecommerce.platform.events.BaseEvent;
 import com.ecommerce.platform.exception.IntegrationException;
 import io.awspring.cloud.sns.core.SnsTemplate;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import org.slf4j.Logger;
@@ -15,8 +17,9 @@ import java.util.function.Supplier;
 
 /**
  * Implementacao unica de {@link EventPublisher}, com Retry (backoff exponencial)
- * conforme .claude/rules/resiliencia.md. Reutilizada por todos os microsservicos
- * publicadores - nenhum servico deve chamar SnsTemplate diretamente.
+ * e Circuit Breaker conforme .claude/rules/resiliencia.md. Reutilizada por todos
+ * os microsservicos publicadores - nenhum servico deve chamar SnsTemplate
+ * diretamente.
  */
 public class SnsEventPublisher implements EventPublisher {
 
@@ -27,11 +30,13 @@ public class SnsEventPublisher implements EventPublisher {
     private final SnsTemplate snsTemplate;
     private final MessageSerializer serializer;
     private final Retry retry;
+    private final CircuitBreaker circuitBreaker;
 
     public SnsEventPublisher(SnsTemplate snsTemplate, MessageSerializer serializer, MessagingProperties properties) {
         this.snsTemplate = snsTemplate;
         this.serializer = serializer;
         this.retry = buildRetry(properties.getPublishRetry());
+        this.circuitBreaker = buildCircuitBreaker(properties.getPublishCircuitBreaker());
     }
 
     @Override
@@ -46,13 +51,19 @@ public class SnsEventPublisher implements EventPublisher {
     }
 
     private void doPublish(String topic, String eventType, String jsonPayload) {
-        Supplier<Void> publishCall = Retry.decorateSupplier(retry, () -> {
+        Supplier<Void> rawCall = () -> {
             Message<String> message = MessageBuilder.withPayload(jsonPayload)
                     .setHeader(EVENT_TYPE_HEADER, eventType)
                     .build();
             snsTemplate.send(topic, message);
             return null;
-        });
+        };
+        // CircuitBreaker envolve o Retry (nao o contrario): cada sequencia
+        // completa de tentativas conta como UMA chamada na janela do circuit
+        // breaker, e quando o circuito esta aberto a chamada falha
+        // imediatamente, sem sequer tentar o retry (ver MessagingProperties).
+        Supplier<Void> publishCall = CircuitBreaker.decorateSupplier(circuitBreaker,
+                Retry.decorateSupplier(retry, rawCall));
 
         try {
             publishCall.get();
@@ -71,5 +82,16 @@ public class SnsEventPublisher implements EventPublisher {
                 .retryExceptions(Exception.class)
                 .build();
         return Retry.of("sns-publish", retryConfig);
+    }
+
+    private CircuitBreaker buildCircuitBreaker(MessagingProperties.PublishCircuitBreaker config) {
+        CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
+                .slidingWindowSize(config.getSlidingWindowSize())
+                .minimumNumberOfCalls(config.getMinimumNumberOfCalls())
+                .failureRateThreshold(config.getFailureRateThreshold())
+                .waitDurationInOpenState(Duration.ofMillis(config.getWaitDurationInOpenStateMillis()))
+                .permittedNumberOfCallsInHalfOpenState(config.getPermittedNumberOfCallsInHalfOpenState())
+                .build();
+        return CircuitBreaker.of("sns-publish", circuitBreakerConfig);
     }
 }
