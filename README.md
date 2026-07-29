@@ -66,6 +66,21 @@ Testes unitários (JUnit 5 + Mockito) e de integração reais (Testcontainers: P
 | [`payment-service`](ecommerce-platform/services/payment-service/README.md) | Processa pagamento (simulado, por limite) | `StockReserved` | `PaymentApproved`, `PaymentDeclined` |
 | [`notification-service`](ecommerce-platform/services/notification-service/README.md) | E-mail (Mailpit) / SMS (log) | todos os 7 eventos | — |
 
+## Módulo `platform/`
+
+Bibliotecas Maven compartilhadas, sem regra de negócio — cada serviço acima depende só do que precisa.
+
+| Módulo | Responsabilidade |
+|---|---|
+| [`platform-bom`](ecommerce-platform/platform/platform-bom/README.md) | BOM: centraliza toda versão de dependência |
+| [`platform-common`](ecommerce-platform/platform/platform-common/README.md) | `ApiResponse`/`PageResponse`/`ErrorResponse`, superclasses JPA, utilitários |
+| [`platform-events`](ecommerce-platform/platform/platform-events/README.md) | Contratos dos 7 eventos de domínio da Saga |
+| [`platform-exception`](ecommerce-platform/platform/platform-exception/README.md) | Exceções de negócio + handler global de erro |
+| [`platform-security`](ecommerce-platform/platform/platform-security/README.md) | JWT: geração, validação, filtro, roles |
+| [`platform-messaging`](ecommerce-platform/platform/platform-messaging/README.md) | Publish/consume SNS/SQS, Outbox, Idempotent Consumer, Retry + Circuit Breaker |
+| [`platform-observability`](ecommerce-platform/platform/platform-observability/README.md) | Correlation ID, tracing, métricas, log estruturado |
+| [`platform-testing`](ecommerce-platform/platform/platform-testing/README.md) | Fixtures de evento, JWT de teste, bases de Testcontainers |
+
 ## Estrutura do repositório
 
 ```text
