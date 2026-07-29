@@ -143,6 +143,7 @@ Configuração de tudo que sobe via `docker-compose.yml` mas não é código Jav
 | [`config-repo`](ecommerce-platform/infrastructure/config-repo/README.md) | Configuração compartilhada servida pelo `config-server` (JWT secret, endpoint do LocalStack, etc.) |
 | [`prometheus`](ecommerce-platform/infrastructure/prometheus/README.md) | Scrape config — um alvo por microsserviço |
 | [`grafana`](ecommerce-platform/infrastructure/grafana/README.md) | Provisionamento automático de datasources (Prometheus + Jaeger) |
+| [`terraform`](ecommerce-platform/infrastructure/terraform/README.md) | Infraestrutura de **produção real na AWS** (VPC, ECS Fargate, RDS, SNS/SQS, ALB, Secrets Manager) — validada com `terraform validate`/`plan` |
 
 ## Estrutura do repositório
 
@@ -152,7 +153,7 @@ ecommerce-microservices/          # raiz do repositório git
 └── ecommerce-platform/           # o projeto em si
     ├── platform/                 # bibliotecas Maven compartilhadas (sem regra de negócio)
     ├── services/                 # os 9 microsserviços, cada um com seu README
-    ├── infrastructure/           # LocalStack init, config-repo, Prometheus, Grafana
+    ├── infrastructure/           # LocalStack init, config-repo, Prometheus, Grafana, Terraform de produção
     ├── docs/                     # arquitetura, diagramas, eventos, saga, API, deployment, ADRs
     ├── docker-compose.yml
     ├── pom.xml                   # Maven Multi-Module raiz

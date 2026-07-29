@@ -1,0 +1,5 @@
+# Build a partir da raiz de ecommerce-platform/:
+#   docker build -f infrastructure/terraform/docker/Dockerfile.prometheus -t <ecr-repo-url>:<tag> .
+FROM prom/prometheus:latest
+
+COPY infrastructure/terraform/docker/prometheus.prod.yml /etc/prometheus/prometheus.yml

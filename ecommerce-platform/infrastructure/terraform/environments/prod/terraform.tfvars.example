@@ -1,0 +1,26 @@
+# Copie para terraform.tfvars (que fica fora do controle de versao, ver
+# .gitignore) e ajuste os valores. Nenhum valor aqui e um segredo - segredos de
+# verdade (senha de banco, JWT secret, senha do Grafana) sao gerados pelo
+# proprio Terraform e guardados no Secrets Manager, nunca em .tfvars.
+
+project     = "ecommerce-platform"
+environment = "prod"
+aws_region  = "us-east-1"
+
+image_tag = "latest"
+
+az_count           = 2
+single_nat_gateway = true # true = 1 NAT (mais barato); false = 1 por AZ (mais resiliente)
+
+desired_count      = 1
+rds_instance_class = "db.t4g.micro"
+rds_multi_az       = false
+
+# Vazio = ALB só em HTTP, sem dominio proprio (ok para portfolio/demo).
+domain_name     = ""
+route53_zone_id = ""
+
+# OBRIGATORIO preencher para conseguir acessar Grafana/Prometheus/Jaeger -
+# sem isso, o ALB interno de observabilidade nao aceita conexao de ninguem.
+admin_cidr_blocks = []
+# admin_cidr_blocks = ["203.0.113.4/32"]
