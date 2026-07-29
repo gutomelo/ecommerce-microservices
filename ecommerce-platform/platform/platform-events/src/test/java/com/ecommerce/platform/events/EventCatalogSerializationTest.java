@@ -49,7 +49,8 @@ class EventCatalogSerializationTest {
     void stockReservedEventRoundTrip() throws Exception {
         var payload = new StockReservedEvent.Payload(
                 UUID.fromString(ORDER_ID),
-                List.of(new StockReservedEvent.Payload.ReservedItem(UUID.randomUUID(), 2)));
+                List.of(new StockReservedEvent.Payload.ReservedItem(UUID.randomUUID(), 2)),
+                new BigDecimal("39.80"));
 
         StockReservedEvent original = StockReservedEvent.of(ORDER_ID, CORRELATION_ID, TRACE_ID, payload);
 

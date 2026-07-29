@@ -284,6 +284,50 @@ services:
     networks:
       - ecommerce-network
 
+  inventory-service:
+    build: ./services/inventory-service
+    container_name: inventory-service
+    ports:
+      - "8085:8085"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-inventory
+      DB_PORT: "5432"
+      DB_NAME: inventory_db
+      DB_USERNAME: inventory
+      DB_PASSWORD: inventory
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-inventory:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    build: ./services/payment-service
+    container_name: payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_HOST: postgres-payment
+      DB_PORT: "5432"
+      DB_NAME: payment_db
+      DB_USERNAME: payment
+      DB_PASSWORD: payment
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-payment:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
   gateway-service:
     build: ./services/gateway-service
     container_name: gateway-service
@@ -295,6 +339,8 @@ services:
       CUSTOMER_SERVICE_URL: http://customer-service:8082
       PRODUCT_SERVICE_URL: http://product-service:8083
       ORDER_SERVICE_URL: http://order-service:8084
+      INVENTORY_SERVICE_URL: http://inventory-service:8085
+      PAYMENT_SERVICE_URL: http://payment-service:8086
     depends_on:
       config-server:
         condition: service_healthy
@@ -305,6 +351,10 @@ services:
       product-service:
         condition: service_started
       order-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      payment-service:
         condition: service_started
     networks:
       - ecommerce-network

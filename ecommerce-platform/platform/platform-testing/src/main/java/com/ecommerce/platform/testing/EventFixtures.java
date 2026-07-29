@@ -41,7 +41,8 @@ public final class EventFixtures {
     public static StockReservedEvent stockReservedEvent(String orderId, String correlationId) {
         var payload = new StockReservedEvent.Payload(
                 UUID.fromString(orderId),
-                List.of(new StockReservedEvent.Payload.ReservedItem(UUID.randomUUID(), 2)));
+                List.of(new StockReservedEvent.Payload.ReservedItem(UUID.randomUUID(), 2)),
+                new BigDecimal("39.80"));
         return StockReservedEvent.of(orderId, correlationId, UUID.randomUUID().toString(), payload);
     }
 

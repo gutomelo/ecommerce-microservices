@@ -5,7 +5,7 @@ Todos os eventos abaixo são definidos **exclusivamente** em `platform-events`, 
 | Evento (código) | Tópico SNS | Termo de negócio (pt-BR) | Publicado por | Consumido por | Propósito |
 |---|---|---|---|---|---|
 | `OrderCreatedEvent` | `OrderCreated` | Pedido Criado | `order-service` | `inventory-service` | Novo pedido criado, dispara a Saga |
-| `StockReservedEvent` | `StockReserved` | Estoque Reservado | `inventory-service` | `payment-service` | Estoque reservado com sucesso para o pedido |
+| `StockReservedEvent` | `StockReserved` | Estoque Reservado | `inventory-service` | `payment-service` | Estoque reservado com sucesso para o pedido. Carrega `totalAmount` (copiado de `OrderCreatedEvent`) porque `payment-service` não consome `OrderCreatedEvent` diretamente |
 | `StockUnavailableEvent` | `StockUnavailable` | Estoque Indisponível | `inventory-service` | `order-service` | Não há estoque suficiente; dispara compensação |
 | `PaymentApprovedEvent` | `PaymentApproved` | Pagamento Aprovado | `payment-service` | `order-service` | Pagamento aprovado; pedido pode ser confirmado |
 | `PaymentDeclinedEvent` | `PaymentDeclined` | Pagamento Recusado | `payment-service` | `order-service` | Pagamento recusado; dispara compensação |

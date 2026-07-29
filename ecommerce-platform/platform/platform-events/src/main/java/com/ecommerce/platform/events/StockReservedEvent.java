@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.jackson.Jacksonized;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +37,13 @@ public class StockReservedEvent extends BaseEvent<StockReservedEvent.Payload> {
                 .build();
     }
 
-    public record Payload(UUID orderId, List<ReservedItem> items) {
+    /**
+     * totalAmount viaja aqui (nao apenas em OrderCreatedEvent) porque
+     * payment-service consome exclusivamente StockReservedEvent - nunca
+     * OrderCreatedEvent - e precisa do valor do pedido para decidir
+     * aprovacao/recusa sem acoplar-se a outro topico (ver docs/saga/fluxo-saga.md).
+     */
+    public record Payload(UUID orderId, List<ReservedItem> items, BigDecimal totalAmount) {
 
         public record ReservedItem(UUID productId, int quantity) {
         }
