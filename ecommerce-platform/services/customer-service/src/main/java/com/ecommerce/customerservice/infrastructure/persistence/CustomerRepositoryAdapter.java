@@ -20,9 +20,8 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public Customer save(Customer customer) {
-        CustomerEntity entity = toEntity(customer);
-        CustomerEntity saved = springDataCustomerRepository.save(entity);
-        return toDomain(saved);
+        CustomerEntity entity = customer.getId() == null ? insertNew(customer) : updateExisting(customer);
+        return toDomain(entity);
     }
 
     @Override
@@ -45,14 +44,31 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
         springDataCustomerRepository.deleteById(id);
     }
 
-    private CustomerEntity toEntity(Customer customer) {
+    private CustomerEntity insertNew(Customer customer) {
         CustomerEntity entity = new CustomerEntity();
-        entity.setId(customer.getId());
+        applyFields(entity, customer);
+        return springDataCustomerRepository.save(entity);
+    }
+
+    /**
+     * Busca a entidade ja gerenciada em vez de construir uma nova: uma entidade
+     * transiente sem createdAt (BaseAuditEntity nao tem setter publico para esse
+     * campo) sobrescreveria o valor em memoria no objeto retornado por save()
+     * apos o merge, mesmo com a coluna marcada updatable=false protegendo o
+     * banco - o response da API voltava com createdAt nulo depois de um update.
+     */
+    private CustomerEntity updateExisting(Customer customer) {
+        CustomerEntity entity = springDataCustomerRepository.findById(customer.getId())
+                .orElseThrow(() -> new IllegalStateException("Customer not found for update: " + customer.getId()));
+        applyFields(entity, customer);
+        return springDataCustomerRepository.save(entity);
+    }
+
+    private void applyFields(CustomerEntity entity, Customer customer) {
         entity.setName(customer.getName());
         entity.setEmail(customer.getEmail());
         entity.setPhone(customer.getPhone());
         entity.setActive(customer.isActive());
-        return entity;
     }
 
     private Customer toDomain(CustomerEntity entity) {

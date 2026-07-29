@@ -56,6 +56,8 @@ class ProductCrudFlowIT extends PostgresTestContainerSupport {
                 new HttpEntity<>(authHeaders(customerToken)), new ParameterizedTypeReference<Map<String, Object>>() {
                 });
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> fetched = (Map<String, Object>) getResponse.getBody().get("data");
+        assertThat(fetched.get("createdAt")).isNotNull();
 
         var updateResponse = restTemplate.exchange("/products/" + id, HttpMethod.PUT,
                 new HttpEntity<>(Map.of("name", "Gadget", "description", "desc", "category", "electronics",
@@ -66,6 +68,10 @@ class ProductCrudFlowIT extends PostgresTestContainerSupport {
         Map<String, Object> updated = (Map<String, Object>) updateResponse.getBody().get("data");
         assertThat(updated.get("name")).isEqualTo("Gadget");
         assertThat(((Number) updated.get("stock")).intValue()).isEqualTo(5);
+        // regressao: update ja voltou createdAt nulo no response (a linha do
+        // banco ficava correta gracas a updatable=false, mas o adapter
+        // reconstruia uma entidade transiente sem createdAt a cada save())
+        assertThat(updated.get("createdAt")).isEqualTo(fetched.get("createdAt"));
 
         var deleteResponse = restTemplate.exchange("/products/" + id, HttpMethod.DELETE,
                 new HttpEntity<>(authHeaders(adminToken)), Void.class);

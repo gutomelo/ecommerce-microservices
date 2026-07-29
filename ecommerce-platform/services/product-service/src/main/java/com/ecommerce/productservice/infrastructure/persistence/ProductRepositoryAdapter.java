@@ -20,9 +20,8 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public Product save(Product product) {
-        ProductEntity entity = toEntity(product);
-        ProductEntity saved = springDataProductRepository.save(entity);
-        return toDomain(saved);
+        ProductEntity entity = product.getId() == null ? insertNew(product) : updateExisting(product);
+        return toDomain(entity);
     }
 
     @Override
@@ -40,15 +39,32 @@ public class ProductRepositoryAdapter implements ProductRepository {
         springDataProductRepository.deleteById(id);
     }
 
-    private ProductEntity toEntity(Product product) {
+    private ProductEntity insertNew(Product product) {
         ProductEntity entity = new ProductEntity();
-        entity.setId(product.getId());
+        applyFields(entity, product);
+        return springDataProductRepository.save(entity);
+    }
+
+    /**
+     * Busca a entidade ja gerenciada em vez de construir uma nova: uma entidade
+     * transiente sem createdAt (BaseAuditEntity nao tem setter publico para esse
+     * campo) sobrescreveria o valor em memoria no objeto retornado por save()
+     * apos o merge, mesmo com a coluna marcada updatable=false protegendo o
+     * banco - o response da API voltava com createdAt nulo depois de um update.
+     */
+    private ProductEntity updateExisting(Product product) {
+        ProductEntity entity = springDataProductRepository.findById(product.getId())
+                .orElseThrow(() -> new IllegalStateException("Product not found for update: " + product.getId()));
+        applyFields(entity, product);
+        return springDataProductRepository.save(entity);
+    }
+
+    private void applyFields(ProductEntity entity, Product product) {
         entity.setName(product.getName());
         entity.setDescription(product.getDescription());
         entity.setCategory(product.getCategory());
         entity.setPrice(product.getPrice());
         entity.setStock(product.getStock());
-        return entity;
     }
 
     private Product toDomain(ProductEntity entity) {
