@@ -6,7 +6,7 @@ Backend de e-commerce composto por microsserviços autônomos, comunicando-se ex
 
 ## Princípios adotados
 
-- **Domain-Driven Design (DDD):** cada microsserviço modela seu próprio domínio, com linguagem ubíqua própria (ver eventos nomeados em português, refletindo o domínio de negócio).
+- **Domain-Driven Design (DDD):** cada microsserviço modela seu próprio domínio, com linguagem ubíqua própria. Os nomes de código (classes, eventos, tópicos) são sempre em inglês americano; o termo de negócio equivalente em português só aparece em documentação (ver [`.claude/rules/idioma-e-estilo.md`](../../.claude/rules/idioma-e-estilo.md) e o [catálogo de eventos](../events/catalogo-eventos.md)).
 - **Clean Architecture / Ports and Adapters (Hexagonal):** camadas `domain → application → infrastructure/api`, com dependências sempre apontando para dentro (infra depende de domínio, nunca o contrário).
 - **SOLID / Clean Code:** classes pequenas, responsabilidade única, injeção de dependência via construtor.
 - **Twelve-Factor App:** configuração externalizada (Config Server), stateless, logs como stream, paridade dev/prod via Docker Compose + LocalStack.
@@ -32,6 +32,9 @@ Todo o ambiente (microsserviços, Postgres por serviço, LocalStack simulando SN
 
 ## Referências
 
+- Diagramas C4 (contexto e contêineres): [`docs/diagrams/`](../diagrams/)
 - Fluxo detalhado da Saga: [`docs/saga/fluxo-saga.md`](../saga/fluxo-saga.md)
 - Catálogo de eventos: [`docs/events/catalogo-eventos.md`](../events/catalogo-eventos.md)
 - Decisões arquiteturais: [`docs/decisions/`](../decisions/)
+- Especificações OpenAPI de cada serviço: [`docs/api/`](../api/)
+- Guias de execução local e migração para AWS real: [`docs/deployment/`](../deployment/)
