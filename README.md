@@ -95,6 +95,28 @@ Sobe sozinho: LocalStack (com os 7 tópicos SNS e 4 filas SQS/DLQ já criados), 
 
 Guia completo (fluxo de fumaça via `curl`, portas de cada serviço, como acessar Grafana/Jaeger/Mailpit): **[`ecommerce-platform/docs/deployment/local.md`](ecommerce-platform/docs/deployment/local.md)**.
 
+## Produção (AWS)
+
+Terraform completo em [`ecommerce-platform/infrastructure/terraform/`](ecommerce-platform/infrastructure/terraform/) provisiona a mesma arquitetura acima rodando numa conta AWS real — nenhum código de serviço muda, só a origem de configuração/credenciais (ver [ADR 0003](ecommerce-platform/docs/decisions/0003-ecs-fargate-para-producao-na-aws.md) e as [notas de migração](ecommerce-platform/docs/deployment/aws.md)):
+
+- **Compute**: ECS Fargate — um serviço por container (9 microsserviços + Prometheus/Grafana/Jaeger), service discovery via AWS Cloud Map.
+- **Dados**: 1 RDS PostgreSQL por serviço + Secrets Manager (JWT, credenciais de banco, senha do Grafana — nunca em texto puro).
+- **Mensageria**: os mesmos 7 tópicos SNS + 4 filas SQS/DLQ do catálogo de eventos, com uma IAM role por serviço restrita a publicar/consumir exatamente o que aquele serviço publica/consome no catálogo (least privilege).
+- **Rede**: VPC com subnets públicas/privadas, ALB público só na frente do `gateway-service`, ALB **interno** (nunca exposto à internet por padrão) para Prometheus/Grafana/Jaeger.
+- Validado com `terraform validate`/`terraform plan` (grafo de dependências resolve por completo, todas as ~9 ações de criação planejadas corretamente); falta só uma conta AWS real para `apply`.
+
+Instalação:
+
+```bash
+cd ecommerce-platform/infrastructure/terraform/environments/prod
+cp terraform.tfvars.example terraform.tfvars   # ajuste ao menos admin_cidr_blocks
+terraform init -backend-config=backend.hcl      # bucket S3 + tabela DynamoDB de lock (bootstrap manual, ver guia)
+terraform plan
+terraform apply
+```
+
+Depois do primeiro `apply` (cria o ECR vazio), publique as imagens Docker e reaplique. Passo a passo completo — bootstrap do state remoto, build/push das imagens, e as lacunas do lado da aplicação que ainda faltam antes de apontar para uma conta real (isolar o profile `local` no config-repo, trocar o e-mail para Amazon SES) — em **[`ecommerce-platform/infrastructure/terraform/README.md`](ecommerce-platform/infrastructure/terraform/README.md)**.
+
 ## Testes
 
 ```bash
@@ -181,4 +203,5 @@ O planejamento em marcos, a implementação dos 9 microsserviços e do módulo `
 - [`ecommerce-platform/docs/api/`](ecommerce-platform/docs/api/) — especificações OpenAPI de cada serviço.
 - [`ecommerce-platform/docs/deployment/local.md`](ecommerce-platform/docs/deployment/local.md) — guia de execução local.
 - [`ecommerce-platform/docs/deployment/aws.md`](ecommerce-platform/docs/deployment/aws.md) — notas de migração para AWS real.
+- [`ecommerce-platform/infrastructure/terraform/README.md`](ecommerce-platform/infrastructure/terraform/README.md) — guia completo de instalação em produção (Terraform).
 - [`ecommerce-platform/docs/decisions/`](ecommerce-platform/docs/decisions/) — Architecture Decision Records.
