@@ -70,7 +70,33 @@ flowchart TB
 - **Retry + Circuit Breaker + DLQ**: publicação no SNS protegida por Resilience4j (retry com backoff + circuit breaker); toda fila SQS tem DLQ própria com `maxReceiveCount` configurado.
 - Módulo `platform/` compartilha infraestrutura (eventos, mensageria, segurança, observabilidade, exceções, testes) sem nenhuma regra de negócio.
 
-Diagramas C4, fluxo completo da Saga, catálogo de eventos e ADRs: ver [`ecommerce-platform/docs/`](ecommerce-platform/docs/) (índice abaixo).
+### Passo a passo da Saga
+
+Nenhum serviço chama outro diretamente — toda a coordenação acontece publicando e consumindo eventos via SNS/SQS. O `correlationId` é gerado na criação do pedido e propagado em todo evento subsequente da mesma transação distribuída (rastreável ponta a ponta nos logs de cada serviço).
+
+1. **Cliente cria o pedido** via `gateway-service` (JWT obrigatório, role `CUSTOMER`/`ADMIN`) → `order-service` persiste o pedido com status `PENDING` e grava o evento `OrderCreated` na tabela `outbox`, na mesma transação — nada é publicado no SNS ainda nesse instante.
+2. Um worker assíncrono do `order-service` lê a `outbox` e publica `OrderCreated` de fato no tópico SNS.
+3. `inventory-service` consome `OrderCreated` (fila própria, checagem de idempotência via `processed_events` antes de agir) e tenta reservar estoque:
+   - **Há estoque** → publica `StockReserved` (carrega `totalAmount`, copiado do pedido, porque `payment-service` nunca consome `OrderCreated` diretamente).
+   - **Não há estoque** → publica `StockUnavailable` e o fluxo já pula para a compensação (passo 6) — `payment-service` nunca chega a ser acionado nesse caminho.
+4. `payment-service` consome `StockReserved` e decide por um limite de valor configurável (`platform.payment.approval-threshold`, default `500.00`): pedido ≤ limite → aprovado; acima → recusado.
+   - **Aprovado** → publica `PaymentApproved`.
+   - **Recusado** → publica `PaymentDeclined`.
+5. `order-service` reage ao resultado — é o único serviço que muda o status do pedido:
+   - `PaymentApproved` → status vira `CONFIRMED`, publica `OrderConfirmed`.
+   - `PaymentDeclined` → status vira `CANCELLED`, publica `OrderCancelled`.
+6. **Compensação** (originada por `PaymentDeclined` ou por `StockUnavailable`): `inventory-service` consome `OrderCancelled` e libera o estoque que havia reservado — no caminho de `StockUnavailable` não há nada reservado para liberar.
+7. `notification-service` está inscrito nos 7 tópicos da Saga; reage aos eventos terminais (`OrderConfirmed`/`OrderCancelled`) enviando e-mail (Mailpit local / Amazon SES em produção). Eventos intermediários (`StockReserved`, `PaymentApproved` etc.) são só observados/logados, sem e-mail próprio.
+
+As três ramificações possíveis, todas [provadas ao vivo](#validação-end-to-end) com evidência real (e-mail recebido, estado do banco):
+
+| Caminho | Evento decisivo | Status final | Estoque | Pagamento | E-mail |
+|---|---|---|---|---|---|
+| Sucesso | `PaymentApproved` | `CONFIRMED` | Reservado (permanece) | Processado, aprovado | "Pedido confirmado" |
+| Pagamento recusado | `PaymentDeclined` | `CANCELLED` | Reservado → liberado (compensação) | Processado, recusado | "Pedido cancelado" |
+| Estoque indisponível | `StockUnavailable` | `CANCELLED` | Nunca chega a ser reservado | Nunca chega a ser processado | "Pedido cancelado" |
+
+Diagramas C4, sequência detalhada da Saga (incluindo os diagramas de sequência de sucesso/compensação), catálogo de eventos e ADRs: ver [`ecommerce-platform/docs/`](ecommerce-platform/docs/) (índice abaixo) — em especial [`docs/saga/fluxo-saga.md`](ecommerce-platform/docs/saga/fluxo-saga.md).
 
 ## Validação end-to-end
 
