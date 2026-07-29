@@ -81,6 +81,17 @@ Bibliotecas Maven compartilhadas, sem regra de negócio — cada serviço acima 
 | [`platform-observability`](ecommerce-platform/platform/platform-observability/README.md) | Correlation ID, tracing, métricas, log estruturado |
 | [`platform-testing`](ecommerce-platform/platform/platform-testing/README.md) | Fixtures de evento, JWT de teste, bases de Testcontainers |
 
+## `infrastructure/`
+
+Configuração de tudo que sobe via `docker-compose.yml` mas não é código Java.
+
+| Diretório | O que configura |
+|---|---|
+| [`localstack`](ecommerce-platform/infrastructure/localstack/README.md) | Cria os 7 tópicos SNS e 4 filas SQS/DLQ da Saga automaticamente |
+| [`config-repo`](ecommerce-platform/infrastructure/config-repo/README.md) | Configuração compartilhada servida pelo `config-server` (JWT secret, endpoint do LocalStack, etc.) |
+| [`prometheus`](ecommerce-platform/infrastructure/prometheus/README.md) | Scrape config — um alvo por microsserviço |
+| [`grafana`](ecommerce-platform/infrastructure/grafana/README.md) | Provisionamento automático de datasources (Prometheus + Jaeger) |
+
 ## Estrutura do repositório
 
 ```text
