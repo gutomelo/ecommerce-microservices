@@ -1,8 +1,14 @@
 # ecommerce-microservices
 
+[![CI](https://github.com/gutomelo/ecommerce-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/gutomelo/ecommerce-microservices/actions/workflows/ci.yml)
+![Java](https://img.shields.io/badge/Java-21-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3-brightgreen)
+![Architecture](https://img.shields.io/badge/architecture-microservices%20%2B%20saga-blue)
+![Built with Claude Code](https://img.shields.io/badge/built%20with-Claude%20Code-8A63D2)
+
 Plataforma de e-commerce baseada em microsserviços, orientada a eventos (Event-Driven Architecture), construída como referência de boas práticas do ecossistema Spring para portfólio técnico.
 
-Backend distribuído de e-commerce com **9 microsserviços autônomos**, coordenados por uma **Saga por Coreografia** sobre **AWS SNS/SQS** (simulados localmente via **LocalStack**) — sem orquestrador central. Segue **DDD**, **Clean/Hexagonal Architecture** e os **Twelve-Factor App**.
+Backend distribuído de e-commerce com **9 microsserviços autônomos**, coordenados por uma **Saga por Coreografia** sobre **AWS SNS/SQS** (simulados localmente via **LocalStack**) — sem orquestrador central. Segue **DDD**, **Clean/Hexagonal Architecture** e os **Twelve-Factor App**. Todo o fluxo — incluindo os dois caminhos de compensação da Saga, idempotência, rate limiting e observabilidade — foi validado com um [teste de integração real de ponta a ponta](#validação-end-to-end), subindo a stack inteira via Docker Compose e exercitando cada serviço de verdade (nada mockado).
 
 > O código do projeto (Maven multi-módulo, serviços, docs) vive todo dentro de [`ecommerce-platform/`](ecommerce-platform/). Só `.github/workflows/` fica na raiz do repositório git (aqui), porque é onde o GitHub Actions exige que esteja.
 
@@ -12,14 +18,50 @@ Java 21 · Spring Boot 3 · Spring Cloud (Config, Gateway) · Spring Cloud AWS (
 
 ## Arquitetura
 
-```text
-Cliente/Admin → gateway-service → { auth, customer, product, order, inventory, payment }-service
-                                                              │
-                                          order-service ──► SNS/SQS ◄── inventory-service
-                                                              ▲              │
-                                                              └── payment-service
-                                                                       │
-                                                          notification-service (assina tudo)
+Visão da Saga por Coreografia ponta a ponta — do request no Gateway até a confirmação/cancelamento do pedido e o e-mail de notificação. Setas sólidas verdes = caminho feliz; setas tracejadas vermelhas = compensação. Diagramas C4 completos (contexto e contêineres, com todos os 9 serviços e bancos) em [`ecommerce-platform/docs/diagrams/`](ecommerce-platform/docs/diagrams/).
+
+```mermaid
+flowchart TB
+    client(["👤 Cliente / Admin"])
+    gw["🚪 gateway-service<br/>JWT · Rate Limiting"]
+    order["📦 order-service<br/><i>PENDING → CONFIRMED / CANCELLED</i>"]
+    inventory["📊 inventory-service<br/><i>reserva / libera estoque</i>"]
+    payment["💳 payment-service<br/><i>aprova / recusa pagamento</i>"]
+    notification["📧 notification-service"]
+    bus{{"AWS SNS + SQS (LocalStack)<br/>Saga por Coreografia"}}
+    mailpit(["📬 Mailpit"])
+    confirmed(["✅ CONFIRMED"])
+    cancelled(["❌ CANCELLED<br/><i>estoque liberado se reservado</i>"])
+
+    client -->|"HTTPS + JWT"| gw
+    gw -->|"cria pedido"| order
+
+    order ==>|"① OrderCreated"| bus
+    bus ==>|"① OrderCreated"| inventory
+
+    inventory ==>|"② StockReserved"| bus
+    inventory -.->|"② StockUnavailable"| bus
+
+    bus ==>|"② StockReserved"| payment
+    bus -.->|"② StockUnavailable"| order
+
+    payment ==>|"③ PaymentApproved"| bus
+    payment -.->|"③ PaymentDeclined"| bus
+
+    bus ==>|"③ PaymentApproved"| order
+    bus -.->|"③ PaymentDeclined"| order
+    bus -.->|"OrderCancelled (compensação)"| inventory
+
+    order ==> confirmed
+    order -.-> cancelled
+
+    bus -.->|"assina todos os eventos"| notification
+    notification --> mailpit
+
+    style bus fill:#e8a33d,color:#000
+    style confirmed fill:#2e7d32,color:#fff
+    style cancelled fill:#c62828,color:#fff
+    style gw fill:#1168bd,color:#fff
 ```
 
 - **Saga por Coreografia**: `order-service` cria o pedido (`PENDING`) e publica `OrderCreated`. `inventory-service` reserva estoque e publica `StockReserved`/`StockUnavailable`. `payment-service` decide aprovar/recusar e publica `PaymentApproved`/`PaymentDeclined`. `order-service` reage a esses dois últimos e fecha o pedido (`CONFIRMED`/`CANCELLED`, com `inventory-service` liberando o estoque na compensação). `notification-service` observa tudo e envia e-mail/SMS.
@@ -29,6 +71,16 @@ Cliente/Admin → gateway-service → { auth, customer, product, order, inventor
 - Módulo `platform/` compartilha infraestrutura (eventos, mensageria, segurança, observabilidade, exceções, testes) sem nenhuma regra de negócio.
 
 Diagramas C4, fluxo completo da Saga, catálogo de eventos e ADRs: ver [`ecommerce-platform/docs/`](ecommerce-platform/docs/) (índice abaixo).
+
+## Validação end-to-end
+
+Além da suíte automatizada, a stack inteira foi validada em tempo real: cold start completo via Docker Compose, os 9 serviços + 7 bancos exercitados de verdade, e as três ramificações da Saga provadas ponta a ponta com evidência concreta (não só asserção de teste):
+
+- **Caminho feliz**, compensação por **pagamento recusado** e compensação por **estoque indisponível** — cada uma confirmada por e-mail real recebido no Mailpit e pelo estado final correto de estoque/pagamento no banco.
+- **Idempotência**: reenvio real da mesma mensagem SQS (`eventId` repetido) não duplica o efeito.
+- **Rate limiting** do gateway: disparo de 40 requisições confirmou o corte exato no limite configurado.
+- **Observabilidade**: todos os alvos do Prometheus `up`, datasources do Grafana provisionados, traces reais capturados no Jaeger.
+- Esse processo encontrou e corrigiu um bug real (`createdAt` nulo após update em `customer-service`/`product-service`, por reconstrução de entidade JPA transiente) — com teste de regressão adicionado em ambos os serviços.
 
 ## Como rodar
 
@@ -106,6 +158,17 @@ ecommerce-microservices/          # raiz do repositório git
     ├── pom.xml                   # Maven Multi-Module raiz
     └── CLAUDE.md                 # contexto para desenvolvimento assistido por IA
 ```
+
+## Desenvolvimento assistido por IA (Claude Code)
+
+Este projeto foi construído com [Claude Code](https://claude.com/claude-code) seguindo uma prática de **Context Engineering**: em vez de gerar código a partir de prompts soltos, o repositório carrega um contexto estruturado que qualquer sessão de IA (ou dev humano) lê antes de tocar no código, em [`ecommerce-platform/.claude/`](ecommerce-platform/.claude/):
+
+- **[`CLAUDE.md`](ecommerce-platform/CLAUDE.md)** — a "memória" do projeto: stack, estrutura alvo do monorepo, tabela de responsabilidades de cada serviço e onde encontrar cada regra.
+- **[`.claude/rules/`](ecommerce-platform/.claude/rules/)** (10 arquivos) — regras não negociáveis carregadas em toda sessão: arquitetura hexagonal, comunicação só por eventos (nunca REST síncrono entre serviços), um banco por serviço, idioma (código em inglês, docs em português), segurança, resiliência, observabilidade, testes. É o que manteve os 9 microsserviços — implementados em marcos/sessões separados — consistentes entre si.
+- **[`.claude/skills/`](ecommerce-platform/.claude/skills/)** (3 skills) — automações reutilizáveis: `novo-microsservico` (scaffold completo, já registrado no Maven e no `docker-compose.yml`), `novo-evento-dominio` (novo evento em `platform-events` + catálogo + produtor/consumidor ligados), `novo-adr` (registra decisão arquitetural no formato padrão).
+- **[`docs/decisions/`](ecommerce-platform/docs/decisions/)** — Architecture Decision Records geradas durante a implementação (ex.: Saga por coreografia vs. orquestração; Mailpit para e-mail local).
+
+O planejamento em marcos, a implementação dos 9 microsserviços e do módulo `platform/`, a infraestrutura, os testes (unitários + Testcontainers), o CI e a bateria de [testes de integração real](#validação-end-to-end) foram todos feitos nessa parceria entre engenharia de contexto e execução por IA — o repositório documenta o processo tanto quanto o resultado.
 
 ## Documentação
 
