@@ -58,11 +58,12 @@ ecommerce-platform/
 │   ├── prometheus/ · grafana/ · jaeger/ · scripts/
 ├── docs/
 │   ├── architecture/ · diagrams/ · api/ · saga/ · events/ · deployment/ · decisions/
-├── .github/workflows/
 ├── docker-compose.yml
 ├── pom.xml                    # Maven Multi Module raiz
 └── README.md
 ```
+
+> **Nota:** `.github/workflows/` (CI) vive na **raiz do repositório git** (`ecommerce-microservices/.github/workflows/`), não dentro de `ecommerce-platform/` — o GitHub só descobre workflows nesse caminho. Os steps do workflow usam `working-directory: ecommerce-platform` para rodar os comandos Maven.
 
 Build: Maven Multi Module na raiz compila `platform/` + todos os `services/`. Cada serviço também compila isoladamente. Ambiente local sobe inteiro com `docker compose up` (LocalStack + SNS/SQS + Postgres por serviço + Gateway + Config Server + serviços + Prometheus + Grafana + Jaeger), sem passos manuais.
 
