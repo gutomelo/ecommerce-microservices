@@ -18,6 +18,10 @@ Java 21 · Spring Boot 3 · Spring Cloud (Config, Gateway) · Spring Cloud AWS (
 
 ## Arquitetura
 
+![Visão geral da arquitetura da plataforma de e-commerce com 9 microsserviços, mensageria SNS/SQS e infraestrutura local](ecommerce-platform/docs/diagrams/arquitetura.png)
+
+A imagem acima apresenta uma visão geral dos 9 microsserviços, da camada de eventos AWS SNS/SQS e da infraestrutura local com Docker Compose. Ela está disponível no repositório em [`arquitetura.png`](ecommerce-platform/docs/diagrams/arquitetura.png).
+
 Visão da Saga por Coreografia ponta a ponta — do request no Gateway até a confirmação/cancelamento do pedido e o e-mail de notificação. Setas sólidas verdes = caminho feliz; setas tracejadas vermelhas = compensação. Diagramas C4 completos (contexto e contêineres, com todos os 9 serviços e bancos) em [`ecommerce-platform/docs/diagrams/`](ecommerce-platform/docs/diagrams/).
 
 ```mermaid
