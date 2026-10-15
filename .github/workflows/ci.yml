@@ -4,11 +4,11 @@ name: CI
 # nao na raiz do repositorio - por isso todos os passos abaixo rodam com
 # working-directory: ecommerce-platform.
 
+# Desativado por decisao do autor (2026-10-15): a validacao e local (Maven, Testcontainers e
+# Docker Compose). So roda se disparado a mao na aba Actions. Para reativar, volte os gatilhos
+# `push` e `pull_request` (branches: [master, main]).
 on:
-  push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
