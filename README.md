@@ -1,6 +1,5 @@
 # ecommerce-microservices
 
-[![CI](https://github.com/gutomelo/ecommerce-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/gutomelo/ecommerce-microservices/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-microservices%20%2B%20saga-blue)
@@ -154,7 +153,7 @@ cd ecommerce-platform
 ./mvnw clean verify
 ```
 
-Testes unitários (JUnit 5 + Mockito) e de integração reais (Testcontainers: PostgreSQL e LocalStack de verdade — nunca mocks para infraestrutura) em todos os módulos. Gate de cobertura JaCoCo **≥ 80%** por módulo, obrigatório para o build passar. CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+Testes unitários (JUnit 5 + Mockito) e de integração reais (Testcontainers: PostgreSQL e LocalStack de verdade — nunca mocks para infraestrutura) em todos os módulos. Gate de cobertura JaCoCo **≥ 80%** por módulo, obrigatório para o build passar. CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (**desativado em 2026-10-15**: só roda por disparo manual na aba Actions; a validação é local).
 
 ## Microsserviços
 
